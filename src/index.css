@@ -1,0 +1,271 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Baloo 2", system-ui, sans-serif;
+  --font-sans: "Nunito", system-ui, sans-serif;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-success: var(--success);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --radius: 1.25rem;
+  --background: oklch(0.2 0.12 268);
+  --foreground: oklch(0.97 0.01 260);
+  --card: oklch(0.27 0.15 265);
+  --card-foreground: oklch(0.97 0.01 260);
+  --primary: oklch(0.83 0.17 85);
+  --primary-foreground: oklch(0.2 0.1 268);
+  --secondary: oklch(0.33 0.16 263);
+  --secondary-foreground: oklch(0.97 0.01 260);
+  --muted: oklch(0.3 0.13 265);
+  --muted-foreground: oklch(0.78 0.05 260);
+  --accent: oklch(0.82 0.13 210);
+  --accent-foreground: oklch(0.2 0.1 268);
+  --success: oklch(0.78 0.18 150);
+  --destructive: oklch(0.66 0.22 25);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.45 0.15 240 / 60%);
+  --input: oklch(0.45 0.15 240 / 60%);
+  --ring: oklch(0.82 0.13 210);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    font-family: var(--font-sans);
+    color: var(--foreground);
+    min-height: 100vh;
+    background:
+      radial-gradient(1px 1px at 10% 20%, oklch(1 0 0 / 70%) 50%, transparent 51%),
+      radial-gradient(1px 1px at 70% 15%, oklch(1 0 0 / 60%) 50%, transparent 51%),
+      radial-gradient(1.5px 1.5px at 40% 80%, oklch(1 0 0 / 50%) 50%, transparent 51%),
+      radial-gradient(1px 1px at 85% 60%, oklch(1 0 0 / 60%) 50%, transparent 51%),
+      radial-gradient(1px 1px at 25% 55%, oklch(1 0 0 / 40%) 50%, transparent 51%),
+      radial-gradient(ellipse at 50% 20%, oklch(0.4 0.2 262), var(--background) 65%);
+    background-size: 320px 320px, 280px 280px, 360px 360px, 300px 300px, 240px 240px, 100% 100%;
+    background-attachment: fixed;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+  }
+}
+
+.glow-card {
+  background: color-mix(in oklch, var(--card) 85%, transparent);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 0 24px color-mix(in oklch, var(--accent) 35%, transparent);
+}
+
+.login-card {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklch, var(--card) 92%, transparent),
+    color-mix(in oklch, var(--background) 88%, transparent)
+  );
+  border: 3px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow:
+    0 0 0 4px color-mix(in oklch, var(--primary) 25%, transparent),
+    0 0 44px color-mix(in oklch, var(--primary) 55%, transparent),
+    0 0 90px color-mix(in oklch, var(--accent) 35%, transparent);
+  backdrop-filter: blur(6px);
+}
+
+@keyframes missao-gatinho-caminha {
+  0% { left: 0.5rem; transform: translateY(2px) rotate(-2deg); }
+  50% { left: calc(100% - 5.5rem); transform: translateY(-3px) rotate(2deg); }
+  100% { left: 0.5rem; transform: translateY(2px) rotate(-2deg); }
+}
+
+@keyframes missao-barra-carrega {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+.missao-gatinho {
+  animation: missao-gatinho-caminha 4.5s ease-in-out infinite;
+}
+
+.missao-barra-carrega {
+  animation: missao-barra-carrega 1.8s ease-in-out infinite;
+}
+
+.ranking-page {
+  background:
+    radial-gradient(circle at 15% 15%, rgb(37 99 235 / 35%), transparent 25%),
+    radial-gradient(circle at 85% 35%, rgb(8 145 178 / 30%), transparent 28%),
+    radial-gradient(circle at 50% 100%, rgb(30 64 175 / 40%), transparent 35%),
+    #050b3d;
+}
+
+.ranking-hero,
+.ranking-board,
+.ranking-scoreboard {
+  background: linear-gradient(135deg, rgb(15 23 102 / 92%), rgb(8 47 125 / 88%));
+}
+
+.ranking-board {
+  background-image:
+    radial-gradient(1px 1px at 12% 20%, white 50%, transparent 51%),
+    radial-gradient(1px 1px at 80% 30%, rgb(165 243 252) 50%, transparent 51%),
+    radial-gradient(1px 1px at 45% 75%, rgb(253 224 71) 50%, transparent 51%),
+    linear-gradient(135deg, rgb(15 23 102 / 92%), rgb(8 47 125 / 88%));
+  background-size: 150px 130px, 190px 170px, 220px 180px, 100% 100%;
+}
+
+.ranking-track {
+  background: linear-gradient(160deg, rgb(30 64 175 / 90%), rgb(15 23 92 / 95%));
+}
+
+.ranking-track-glow {
+  background: linear-gradient(90deg, #facc15, #22d3ee, #c084fc, #34d399);
+  box-shadow: 0 0 18px rgb(34 211 238 / 75%);
+}
+
+.ranking-artboard {
+  background: #06134d;
+  box-shadow: inset 0 0 30px rgb(34 211 238 / 25%);
+}
+
+.ranking-house {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  min-height: 80px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 2px solid rgb(103 232 249 / 85%);
+  border-radius: 1rem;
+  background: linear-gradient(145deg, #2563eb, #4338ca);
+  box-shadow: inset 0 2px 0 rgb(255 255 255 / 25%), 0 0 14px rgb(34 211 238 / 35%);
+  color: white;
+  text-align: center;
+  transition: transform 180ms ease, filter 180ms ease;
+}
+
+.ranking-house:hover {
+  transform: translateY(-4px) rotate(-1deg);
+  filter: brightness(1.15);
+}
+
+.ranking-house strong {
+  font-size: 0.72rem;
+  color: rgb(224 242 254 / 85%);
+}
+
+.ranking-house-start {
+  background: linear-gradient(145deg, #f59e0b, #ea580c);
+  border-color: #fde047;
+}
+
+.ranking-house-finish {
+  background: linear-gradient(145deg, #facc15, #ea580c);
+  border-color: #fef08a;
+}
+
+.ranking-player-token {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  transform: translate(-50%, -50%);
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  border-radius: 999px;
+  color: #050b3d;
+  font-size: 0.8rem;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgb(255 255 255 / 70%);
+}
+
+.ranking-avatar-image {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.ranking-character-name {
+  z-index: 6;
+  display: flex;
+  min-width: 5.5rem;
+  max-width: 8.5rem;
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+  align-items: center;
+  border: 2px solid rgb(255 255 255 / 85%);
+  border-radius: 0.7rem;
+  background: linear-gradient(135deg, rgb(15 23 102 / 96%), rgb(30 64 175 / 96%));
+  padding: 0.25rem 0.5rem;
+  color: white;
+  text-align: center;
+  box-shadow: 0 0 12px rgb(34 211 238 / 65%);
+  pointer-events: none;
+  transition: left 900ms cubic-bezier(.22, 1, .36, 1), top 900ms cubic-bezier(.22, 1, .36, 1), box-shadow 300ms ease;
+}
+
+.ranking-character-name::after {
+  content: "🚗";
+  position: absolute;
+  right: -0.75rem;
+  bottom: -0.65rem;
+  font-size: 1rem;
+  filter: drop-shadow(0 0 4px rgb(253 224 71 / 90%));
+}
+
+.ranking-character-name strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: clamp(0.55rem, 1.2vw, 0.85rem);
+}
+
+.ranking-character-name .ranking-avatar-image {
+  height: 1.5rem;
+  width: 1.5rem;
+  margin-bottom: 0.1rem;
+  border: 1px solid rgb(255 255 255 / 80%);
+}
+
+.ranking-character-name small {
+  color: var(--primary);
+  font-size: clamp(0.5rem, 1vw, 0.7rem);
+  font-weight: 800;
+}
+
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  border-bottom: 1px solid rgb(165 243 252 / 18%);
+  border-radius: 0.9rem;
+  padding: 0.55rem 0.35rem;
+}
+
+.ranking-row-leader {
+  background: linear-gradient(90deg, rgb(250 204 21 / 22%), transparent);
+}

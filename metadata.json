@@ -1,0 +1,6 @@
+{
+  "name": "Missão Quitério",
+  "description": "Jogo de leitura da Biblioteca Maria Quitéria com missões de perguntas e ranking dos alunos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
