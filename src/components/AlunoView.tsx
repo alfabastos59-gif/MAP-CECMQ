@@ -89,16 +89,15 @@ export const AlunoView: React.FC<AlunoViewProps> = ({ aluno, onSelectLivro, onNa
 
         {/* 5-day Rule notification */}
         {geral.aguardando && geral.liberaEm && (
-          <div className="mt-5 flex items-start gap-3 rounded-xl bg-amber-500/15 border border-amber-400/40 p-3.5 text-xs text-amber-200">
-            <Clock className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+          <div className="mt-5 flex items-center gap-2.5 rounded-xl bg-amber-500/15 border border-amber-400/40 px-3.5 py-2.5 text-xs text-amber-200">
+            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
             <div>
-              <span className="font-bold">Tempo de leitura em andamento: </span>
-              Sua próxima missão estará liberada em{" "}
+              <span className="font-bold text-amber-300">Nova Missão: </span>
+              liberada em{" "}
               <strong>{geral.liberaEm.toLocaleDateString("pt-BR")}</strong> às{" "}
               <strong>
                 {geral.liberaEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
               </strong>
-              . Aproveite para ler seu próximo livro!
             </div>
           </div>
         )}

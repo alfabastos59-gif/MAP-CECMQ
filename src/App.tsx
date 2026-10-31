@@ -107,7 +107,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#050b3d] text-slate-100 flex flex-col font-['Nunito',sans-serif]">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#050b3d] text-slate-100 flex flex-col font-['Nunito',sans-serif]">
       {/* Header for subviews (aluno, missao, ranking) */}
       {currentView !== "login" && (
         <Cabecalho
@@ -119,7 +119,7 @@ export default function App() {
       )}
 
       {/* Main View */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 w-full max-w-full overflow-x-hidden flex flex-col">
         {currentView === "login" && (
           <CosmicHomeView
             aluno={aluno}

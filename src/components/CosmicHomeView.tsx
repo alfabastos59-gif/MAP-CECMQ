@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Aluno,
-  livrosDevolvidos,
-  partidasDo,
   KEY,
   rankingAlunos,
   LinhaRanking,
-  obterPontosPorCasa,
   obterMetaPontos,
 } from "../lib/aluno";
 import { AvatarAluno } from "./AvatarAluno";
@@ -18,16 +15,12 @@ import { ConquistaPremioModal } from "./ConquistaPremioModal";
 import {
   Trophy,
   Sparkles,
-  Play,
-  UserCheck,
   X,
   BarChart3,
   Star,
   Users,
-  Compass,
-  BookOpen,
-  LogOut,
   ChevronRight,
+  Play,
 } from "lucide-react";
 
 interface CosmicHomeViewProps {
@@ -151,15 +144,6 @@ export const CosmicHomeView: React.FC<CosmicHomeViewProps> = ({
     setTodosRanqueados(rankingAlunos());
   };
 
-  // Student stats
-  const partidas = aluno ? partidasDo(aluno.codigo_aluno) : [];
-  const totalPontosAluno = partidas.reduce((acc, p) => acc + p.pontos, 0);
-
-  // Highest score or active student score for the bottom progress bar
-  const maiorPontos = jogadoresAtivos.length > 0 ? Math.max(...jogadoresAtivos.map((j) => j.pontos)) : 0;
-  const pontosExibicaoProgresso = aluno ? totalPontosAluno : (maiorPontos > 0 ? maiorPontos : 400);
-  const progressoPercentual = Math.min(100, Math.round((pontosExibicaoProgresso / metaPontos) * 100));
-
   // Helper to get rank position (1-indexed) in active players
   const getRankPosicao = (codigo: string) => {
     const idx = jogadoresAtivos.findIndex((a) => a.codigo === codigo);
@@ -168,303 +152,397 @@ export const CosmicHomeView: React.FC<CosmicHomeViewProps> = ({
     return fallbackIdx !== -1 ? fallbackIdx + 1 : 1;
   };
 
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [casaFocada, setCasaFocada] = useState<number | null>(null);
+
+  // Difficulty setting for the Nível Médio card
+  const [dificuldade, setDificuldade] = useState<"facil" | "medio" | "dificil">(() => {
+    return (localStorage.getItem("mq_dificuldade") as any) || "medio";
+  });
+
+  const toggleDificuldade = () => {
+    const prox = dificuldade === "facil" ? "medio" : dificuldade === "medio" ? "dificil" : "facil";
+    setDificuldade(prox);
+    localStorage.setItem("mq_dificuldade", prox);
+  };
+
+  const dificuldadeNome = dificuldade === "facil" ? "Fácil" : dificuldade === "medio" ? "Médio" : "Difícil";
+
+  // Focus and highlight a house on the map
+  const focarCasa = (casaNum: number) => {
+    setCasaFocada(casaNum);
+    setTimeout(() => setCasaFocada(null), 2500);
+    if (!scrollContainerRef.current) return;
+    const casaAlvo = CASAS_DO_PERCURSO.find((c) => c.id === casaNum) || CASAS_DO_PERCURSO[0];
+    const container = scrollContainerRef.current;
+    const targetX = (casaAlvo.x / 100) * container.scrollWidth - container.clientWidth / 2;
+    container.scrollTo({ left: Math.max(0, targetX), behavior: "smooth" });
+  };
+
   return (
-    <div className="relative min-h-[calc(100vh-65px)] w-full flex flex-col justify-between overflow-x-hidden bg-[#030933]">
-      
-      {/* ========================================================================= */}
-      {/* TOP HEADER (Matching the user's reference mockup) */}
-      {/* ========================================================================= */}
-      <header className="relative z-30 w-full px-3 sm:px-6 py-2.5 bg-gradient-to-b from-[#020728]/95 to-transparent flex items-center justify-between gap-3">
-        {/* Brand: Cat Badge + MISSÃO QUITÉRIO */}
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 shadow-[0_0_20px_rgba(251,191,36,0.6)] border-2 border-white shrink-0">
-            <span className="text-2xl sm:text-3xl">🐱</span>
-          </div>
-          <div>
-            <div className="flex items-center gap-1 leading-none">
-              <span className="font-['Baloo_2'] text-xl sm:text-2xl font-black tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                MISSÃO
-              </span>
-              <span className="font-['Baloo_2'] text-xl sm:text-2xl font-black tracking-tight text-amber-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] ml-1">
-                QUITÉRIO
-              </span>
-            </div>
-            <span className="text-[11px] sm:text-xs font-bold text-cyan-200/90 tracking-wide block mt-0.5">
-              Biblioteca Maria Quitéria
-            </span>
-          </div>
+    <div
+      className="relative w-full min-h-screen flex flex-col justify-between items-center bg-[#030933] select-none overflow-x-hidden box-border px-1 sm:px-2 pt-1 pb-[max(5.5rem,env(safe-area-inset-bottom))]"
+    >
+      {/* ======================================================================= */}
+      {/* MAPA DO JOGO RESPONSIVO (Com pan horizontal interno no mobile sem rolar a página) */}
+      {/* ======================================================================= */}
+      <div className="w-full flex-1 flex flex-col justify-center items-center my-auto min-h-0 max-w-full">
+        {/* Dica de deslizamento no celular */}
+        <div className="md:hidden flex items-center justify-center gap-1.5 text-[10px] text-cyan-300/80 pb-1 font-['Baloo_2'] select-none">
+          <span>👈 Deslize para explorar as ilhas 👉</span>
         </div>
 
-        {/* Center: Wooden Sign "Leia • Responda • Avance" with open book */}
-        <div className="hidden md:flex items-center justify-center pointer-events-none select-none">
-          <img
-            src="/assets/placa_leia.png"
-            alt="Leia • Responda • Avance"
-            className="h-10 sm:h-12 w-auto object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.6)]"
-            onError={(e) => {
-              // Fallback styled wooden plaque if image isn't loaded
-              (e.target as HTMLElement).style.display = "none";
-            }}
-          />
-        </div>
+        <div
+          ref={scrollContainerRef}
+          className="w-full max-w-[1875px] overflow-x-auto overflow-y-visible scrollbar-none rounded-xl sm:rounded-3xl shadow-2xl border border-cyan-500/30 bg-[#040a33] touch-pan-x"
+        >
+          <div className="relative min-w-[580px] md:min-w-full w-full aspect-[1875/839] select-none shrink-0">
+            {/* Official Cosmic Map Background Illustration */}
+            <img
+              src="/assets/aistudio/Mapa_C_smico_da_Miss_o_Quit_rio_08f6dd5b.png"
+              alt="Mapa Cósmico da Missão Quitério"
+              className="w-full h-full object-fill pointer-events-none select-none block"
+            />
 
-        {/* Right Actions: Ranking Button & Entrar Button */}
-        <div className="flex items-center gap-2 sm:gap-3">
-          <button
-            onClick={() => onNavigate("ranking")}
-            className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#0d2772] to-[#07194f] hover:from-[#13369a] hover:to-[#0d2772] text-white border-2 border-cyan-400/50 px-4 py-2 font-['Baloo_2'] font-bold text-xs sm:text-sm shadow-lg transition transform active:scale-95 cursor-pointer"
-          >
-            <Trophy className="w-4 h-4 text-amber-400" />
-            <span>Ranking</span>
-          </button>
+        {/* ======================================================================= */}
+        {/* STEPPING STONE PADS & PLAYERS ALONG THE PATH (CASAS 0 TO 10) */}
+        {/* ======================================================================= */}
+        {CASAS_DO_PERCURSO.map((casa) => {
+          // Find all players stationed on this house (including Casa 0 for 0 pts)
+          const alunosNestaCasa = todosRanqueados.filter((j) => j.casa === casa.id);
+          const temAlunos = alunosNestaCasa.length > 0;
+          const ehLargada = casa.id === 0;
+          const ehPremioFinal = casa.id === 10;
+          const isFocada = casaFocada === casa.id;
 
-          {aluno ? (
-            <div className="flex items-center gap-2 rounded-full bg-blue-950/90 border border-cyan-400/60 px-3 py-1 text-xs text-white shadow-lg">
-              <AvatarAluno
-                alunoId={aluno.id}
-                codigo={aluno.codigo_aluno}
-                nome={aluno.nome}
-                avatarUrl={aluno.avatar_url}
-                tamanho="xs"
-              />
-              <span className="font-bold hidden sm:inline">{aluno.nome.split(" ")[0]}</span>
-              <button
-                onClick={onLogout}
-                className="p-1 rounded text-slate-400 hover:text-white"
-                title="Sair"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setIsLoginOpen(true)}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-['Baloo_2'] font-black text-xs sm:text-sm px-5 py-2 shadow-[0_0_15px_rgba(251,191,36,0.5)] border-2 border-white transition transform active:scale-95 cursor-pointer"
+          return (
+            <div
+              key={casa.id}
+              className="absolute -translate-x-1/2 -translate-y-1/2 z-25 transition-all duration-300"
+              style={{ left: `${casa.x}%`, top: `${casa.y}%` }}
             >
-              <span>Entrar</span>
-            </button>
-          )}
-        </div>
-      </header>
-
-      {/* ========================================================================= */}
-      {/* CENTER STAGE: MAP + LEFT RANKING PANEL + STEPPING STONES */}
-      {/* ========================================================================= */}
-      <div className="relative z-10 flex-1 w-full max-w-[1942px] mx-auto flex items-center justify-center px-1 sm:px-2 py-1">
-        
-        {/* Responsive Board Container preserving aspect ratio */}
-        <div className="relative w-full aspect-[1942/810] min-w-[900px] overflow-hidden rounded-3xl border-2 border-cyan-500/40 shadow-2xl bg-[#040a33] select-none">
-          
-          {/* Official Cosmic Map Background Illustration */}
-          <img
-            src="/assets/aistudio/Mapa_C_smico_da_Miss_o_Quit_rio_08f6dd5b.png"
-            alt="Mapa Cósmico da Missão Quitério"
-            className="w-full h-full object-fill pointer-events-none select-none block"
-          />
-
-          {/* ======================================================================= */}
-          {/* STEPPING STONE PADS & PLAYERS ALONG THE PATH (CASAS 0 TO 10) */}
-          {/* ======================================================================= */}
-          {CASAS_DO_PERCURSO.map((casa) => {
-            // Find all players stationed on this house (including Casa 0 for 0 pts)
-            const alunosNestaCasa = todosRanqueados.filter((j) => j.casa === casa.id);
-            const temAlunos = alunosNestaCasa.length > 0;
-            const ehLargada = casa.id === 0;
-            const ehPremioFinal = casa.id === 10;
-
-            return (
-              <div
-                key={casa.id}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-25 transition-all duration-300"
-                style={{ left: `${casa.x}%`, top: `${casa.y}%` }}
-              >
-                {/* Pad Marker: LARGADA wooden badge for Casa 0, Golden for Casa 10, or 3D circular pad */}
-                {ehLargada ? (
+              {/* Pad Marker: LARGADA wooden badge for Casa 0, Golden for Casa 10, or circular pad */}
+              {ehLargada ? (
+                <div
+                  onClick={() => {
+                    if (temAlunos) setAlunoSelecionado(alunosNestaCasa[0]);
+                  }}
+                  className={`relative cursor-pointer group flex flex-col items-center transition-all ${
+                    isFocada ? "scale-125 z-40" : ""
+                  }`}
+                  title={`LARGADA: ${alunosNestaCasa.length} aluno(s) aguardando início`}
+                >
                   <div
-                    onClick={() => {
-                      if (temAlunos) setAlunoSelecionado(alunosNestaCasa[0]);
-                    }}
-                    className="relative cursor-pointer group flex flex-col items-center"
-                    title={`LARGADA: ${alunosNestaCasa.length} aluno(s) aguardando início`}
+                    className={`rounded-md sm:rounded-xl bg-gradient-to-b from-amber-600 via-amber-700 to-amber-900 border sm:border-2 border-amber-300 px-1.5 sm:px-3 py-0.5 sm:py-1 shadow-2xl flex items-center gap-1 transform hover:scale-105 active:scale-95 transition ${
+                      isFocada ? "ring-2 ring-amber-300" : ""
+                    }`}
                   >
-                    <div className="rounded-xl bg-gradient-to-b from-amber-600 via-amber-700 to-amber-900 border-2 border-amber-300 px-3 py-1 shadow-2xl flex items-center gap-1.5 transform hover:scale-105 transition">
-                      <span className="text-sm">⛵</span>
-                      <span className="font-['Baloo_2'] text-xs font-black uppercase text-amber-100 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
-                        LARGADA
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => {
-                      if (temAlunos) setAlunoSelecionado(alunosNestaCasa[0]);
-                    }}
-                    className={`group relative flex h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 items-center justify-center rounded-full bg-gradient-to-b ${casa.corPad} border-3 sm:border-4 shadow-[0_4px_15px_rgba(0,0,0,0.6)] cursor-pointer transform hover:scale-115 transition`}
-                  >
-                    <span className="font-['Baloo_2'] text-xs sm:text-base font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
-                      {casa.id}
+                    <span className="text-[9px] sm:text-sm">⛵</span>
+                    <span className="font-['Baloo_2'] text-[7px] sm:text-xs font-black uppercase text-amber-100 tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                      LARGADA
                     </span>
                   </div>
-                )}
+                </div>
+              ) : (
+                <div
+                  onClick={() => {
+                    if (temAlunos) setAlunoSelecionado(alunosNestaCasa[0]);
+                  }}
+                  className={`group relative flex h-[clamp(18px,3.8vw,44px)] w-[clamp(18px,3.8vw,44px)] items-center justify-center rounded-full bg-gradient-to-b ${casa.corPad} border sm:border-2 md:border-3 shadow-lg cursor-pointer transform hover:scale-115 active:scale-95 transition ${
+                    isFocada ? "ring-4 ring-amber-300 scale-125 z-40 animate-pulse" : ""
+                  }`}
+                >
+                  <span className="font-['Baloo_2'] text-[9px] sm:text-xs md:text-sm font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                    {casa.id}
+                  </span>
+                </div>
+              )}
 
-                {/* PRÊMIO FINAL Wooden Badge on Casa 10 */}
-                {ehPremioFinal && (
-                  <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap z-20">
-                    <span className="font-['Baloo_2'] text-[10px] font-black uppercase text-amber-200 bg-amber-950/90 border border-amber-400 px-2 py-0.5 rounded-md shadow-lg">
-                      ★ PRÊMIO FINAL ★
-                    </span>
-                  </div>
-                )}
+              {/* PRÊMIO FINAL Wooden Badge on Casa 10 */}
+              {ehPremioFinal && (
+                <div className="absolute -bottom-4 sm:-bottom-6 left-1/2 -translate-x-1/2 pointer-events-none whitespace-nowrap z-20">
+                  <span className="font-['Baloo_2'] text-[7px] sm:text-[9px] md:text-[10px] font-black uppercase text-amber-200 bg-amber-950/90 border border-amber-400 px-1.5 sm:px-2 py-0.5 rounded shadow-lg">
+                    ★ PRÊMIO ★
+                  </span>
+                </div>
+              )}
 
-                {/* If players are on this house: render character token & name/score tag */}
-                {temAlunos && (
-                  <div className="absolute -top-16 sm:-top-18 md:-top-20 left-1/2 -translate-x-1/2 flex items-end justify-center pointer-events-auto z-30">
-                    <div className="flex items-end justify-center -space-x-2 hover:space-x-1 transition-all">
-                      {alunosNestaCasa.slice(0, 2).map((jogador) => {
-                        const posicao = getRankPosicao(jogador.codigo);
-                        const ehLider = posicao === 1 && jogador.pontos > 0;
-                        const ehEu = aluno?.codigo_aluno === jogador.codigo;
+              {/* If players are on this house: render character token & name/score tag */}
+              {temAlunos && (
+                <div className="absolute bottom-[75%] sm:bottom-[80%] left-1/2 -translate-x-1/2 flex items-end justify-center pointer-events-auto z-30">
+                  <div className="flex items-end justify-center -space-x-1.5 sm:-space-x-2 hover:space-x-1 transition-all">
+                    {alunosNestaCasa.slice(0, 2).map((jogador) => {
+                      const posicao = getRankPosicao(jogador.codigo);
+                      const ehLider = posicao === 1 && jogador.pontos > 0;
+                      const ehEu = aluno?.codigo_aluno === jogador.codigo;
 
-                        return (
-                          <div
-                            key={jogador.id || jogador.codigo}
-                            onClick={() => setAlunoSelecionado(jogador)}
-                            className="relative flex flex-col items-center cursor-pointer group hover:z-30 transition transform hover:scale-105"
-                          >
-                            {/* Floating Crown for #1 */}
-                            {ehLider && (
-                              <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-30 filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] animate-bounce">
-                                <span className="text-xl sm:text-2xl">👑</span>
-                              </div>
-                            )}
+                      return (
+                        <div
+                          key={jogador.id || jogador.codigo}
+                          onClick={() => setAlunoSelecionado(jogador)}
+                          className="relative flex flex-col items-center cursor-pointer group hover:z-30 transition transform hover:scale-105 active:scale-95 touch-manipulation"
+                        >
+                          {/* Floating Crown for #1 */}
+                          {ehLider && (
+                            <div className="absolute -top-3 sm:-top-5 left-1/2 -translate-x-1/2 z-30 filter drop-shadow animate-bounce">
+                              <span className="text-xs sm:text-lg md:text-xl">👑</span>
+                            </div>
+                          )}
 
-                            {/* Pulsing "VOCÊ" tag only for active player */}
-                            {ehEu && (
-                              <div className="absolute -top-5 left-1/2 -translate-x-1/2 z-30">
-                                <span className="text-[8px] sm:text-[9px] font-black uppercase text-slate-950 bg-amber-400 px-2 py-0.2 rounded-full border border-white shadow-md animate-pulse whitespace-nowrap">
-                                  VOCÊ
-                                </span>
-                              </div>
-                            )}
-
-                            {/* Name & Points Tag Pill */}
-                            <div className="mb-0.5 rounded-lg bg-[#071342]/95 border border-cyan-400/80 px-2 py-0.5 shadow-xl text-center whitespace-nowrap z-20">
-                              <span className="font-['Baloo_2'] text-[10px] sm:text-xs font-bold text-white block leading-tight">
-                                {jogador.nome.split(" ")[0]}
-                              </span>
-                              <span className="font-['Baloo_2'] text-[10px] sm:text-xs font-black text-amber-400 block leading-tight">
-                                {jogador.pontos} pts
+                          {/* Pulsing "VOCÊ" tag only for active player */}
+                          {ehEu && (
+                            <div className="absolute -top-3 sm:-top-4 left-1/2 -translate-x-1/2 z-30">
+                              <span className="text-[6px] sm:text-[8px] md:text-[9px] font-black uppercase text-slate-950 bg-amber-400 px-1 py-0.2 rounded-full border border-white shadow-md animate-pulse whitespace-nowrap">
+                                VOCÊ
                               </span>
                             </div>
+                          )}
 
-                            {/* Character Avatar Token */}
-                            <div className="relative">
-                              <AvatarAluno
-                                alunoId={jogador.id}
-                                codigo={jogador.codigo}
-                                nome={jogador.nome}
-                                avatarUrl={jogador.avatarUrl}
-                                tamanho="md"
-                                className={`border-2 ${
-                                  ehLider
-                                    ? "border-amber-300 ring-2 ring-amber-400 shadow-[0_0_20px_rgba(251,191,36,0.8)]"
-                                    : "border-white shadow-lg"
-                                }`}
-                              />
-                            </div>
+                          {/* Name & Points Tag Pill */}
+                          <div className="mb-0.5 rounded sm:rounded-md bg-[#071342]/95 border border-cyan-400/80 px-1 sm:px-1.5 py-0.2 shadow-lg text-center whitespace-nowrap z-20 max-w-[70px] sm:max-w-[90px] truncate">
+                            <span className="font-['Baloo_2'] text-[7px] sm:text-[9px] md:text-xs font-bold text-white block leading-tight truncate">
+                              {jogador.nome.split(" ")[0]}
+                            </span>
+                            <span className="font-['Baloo_2'] text-[7px] sm:text-[9px] md:text-xs font-black text-amber-400 block leading-tight">
+                              {jogador.pontos} pts
+                            </span>
                           </div>
-                        );
-                      })}
-                    </div>
 
-                    {/* Indicator if more than 2 students are on this house */}
-                    {alunosNestaCasa.length > 2 && (
-                      <button
-                        onClick={() => setAlunoSelecionado(alunosNestaCasa[0])}
-                        className="ml-1 mb-1 font-['Baloo_2'] text-[9px] font-black bg-amber-400 hover:bg-yellow-300 text-slate-950 px-2 py-0.5 rounded-full border border-white shadow-md cursor-pointer transition transform hover:scale-105 whitespace-nowrap z-30"
-                        title={`${alunosNestaCasa.length} alunos nesta casa. Clique para ver todos.`}
-                      >
-                        +{alunosNestaCasa.length - 2} {ehLargada ? "na largada" : ""}
-                      </button>
-                    )}
+                          {/* Character Avatar Token */}
+                          <div className="relative">
+                            <AvatarAluno
+                              alunoId={jogador.id}
+                              codigo={jogador.codigo}
+                              nome={jogador.nome}
+                              avatarUrl={jogador.avatarUrl}
+                              tamanho="responsive"
+                              className={`border sm:border-2 ${
+                                ehLider
+                                  ? "border-amber-300 ring-1 sm:ring-2 ring-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.8)]"
+                                  : "border-white shadow-md"
+                              }`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                )}
-              </div>
-            );
-          })}
 
-        </div>
+                  {/* Indicator if more than 2 students are on this house */}
+                  {alunosNestaCasa.length > 2 && (
+                    <button
+                      onClick={() => setAlunoSelecionado(alunosNestaCasa[0])}
+                      className="ml-0.5 mb-0.5 font-['Baloo_2'] text-[7px] sm:text-[9px] font-black bg-amber-400 hover:bg-yellow-300 text-slate-950 px-1 sm:px-1.5 py-0.2 rounded-full border border-white shadow-md cursor-pointer transition transform hover:scale-105 active:scale-95 whitespace-nowrap z-30"
+                      title={`${alunosNestaCasa.length} alunos nesta casa. Clique para ver todos.`}
+                    >
+                      +{alunosNestaCasa.length - 2}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+
+        {/* ======================================================================= */}
+        {/* INTERACTIVE HOTSPOTS OVER PAINTED ILLUSTRATION BUTTONS */}
+        {/* ======================================================================= */}
+        {/* Hotspot: DETALHES DA EQUIPE (Bottom Left) -> Opens Ranking & Team Modal */}
+        <button
+          onClick={() => {
+            setAbaModalEquipe("ranking");
+            setIsRankingModalOpen(true);
+          }}
+          className="absolute z-30 cursor-pointer rounded-2xl transition hover:opacity-20 hover:bg-white/30 focus:outline-none"
+          style={{
+            left: "2.3%",
+            top: "72.0%",
+            width: "9.5%",
+            height: "23.0%",
+          }}
+          title="Detalhes da Equipe & Ranking dos Alunos"
+          aria-label="Detalhes da Equipe (Ranking)"
+        />
+
+        {/* Hotspot: REGRAS DA ILHA (Bottom Left) -> Opens Regras Modal */}
+        <button
+          onClick={() => setIsRegrasOpen(true)}
+          className="absolute z-30 cursor-pointer rounded-2xl transition hover:opacity-20 hover:bg-white/30 focus:outline-none"
+          style={{
+            left: "13.0%",
+            top: "72.0%",
+            width: "9.5%",
+            height: "23.0%",
+          }}
+          title="Regras da Ilha"
+          aria-label="Regras da Ilha"
+        />
+
+        {/* Hotspot: JOGAR (Bottom Right giant green button) -> Starts Question Game */}
+        <button
+          onClick={handleJogarClique}
+          className="absolute z-30 cursor-pointer rounded-full transition hover:opacity-20 hover:bg-white/30 focus:outline-none"
+          style={{
+            left: "81.5%",
+            top: "64.0%",
+            width: "14.5%",
+            height: "30.0%",
+          }}
+          title="Jogar Perguntas"
+          aria-label="Jogar Perguntas"
+        />
+
+        {/* Hotspot: Central Student Avatar Circle (Bottom Center) */}
+        <button
+          onClick={() => {
+            if (aluno) {
+              const infoAluno = todosRanqueados.find((j) => j.codigo === aluno.codigo_aluno);
+              if (infoAluno) setAlunoSelecionado(infoAluno);
+            } else {
+              setIsLoginOpen(true);
+            }
+          }}
+          className="absolute z-30 cursor-pointer rounded-full transition hover:opacity-20 hover:bg-white/30 focus:outline-none"
+          style={{
+            left: "38.5%",
+            top: "71.0%",
+            width: "9.5%",
+            height: "22.0%",
+          }}
+          title={aluno ? `${aluno.nome} (Seu Perfil)` : "Entrar / Identificar Aluno"}
+          aria-label="Perfil do Aluno"
+        />
+      </div>
+    </div>
+  </div>
+
+      {/* ======================================================================= */}
+      {/* CARDS RESPONSIVOS DO JOGO (Seção 4: Detalhes da Equipe, Regras, Nível) */}
+      {/* ======================================================================= */}
+      <div className="w-full max-w-md mx-auto px-2 py-2 flex items-center justify-center gap-2 sm:gap-3 box-border my-1">
+        {/* Card 1: Detalhes da Equipe */}
+        <button
+          onClick={() => {
+            setAbaModalEquipe("ranking");
+            setIsRankingModalOpen(true);
+          }}
+          className="flex-1 min-w-0 flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b from-[#0a1854] to-[#040a2b] border border-cyan-400/50 hover:border-cyan-300 shadow-[0_4px_16px_rgba(0,102,255,0.3)] transition transform hover:scale-105 active:scale-95 cursor-pointer"
+          title="Detalhes da Equipe & Ranking"
+        >
+          <img
+            src="/assets/buttons/btn_equipe.png"
+            alt="Detalhes da Equipe"
+            className="h-9 sm:h-11 w-auto object-contain drop-shadow"
+          />
+          <span className="font-['Baloo_2'] text-[9px] sm:text-[11px] font-bold text-white text-center leading-tight truncate w-full mt-1">
+            Detalhes Equipe
+          </span>
+        </button>
+
+        {/* Card 2: Regras da Ilha */}
+        <button
+          onClick={() => setIsRegrasOpen(true)}
+          className="flex-1 min-w-0 flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b from-[#1b0d52] to-[#0a0526] border border-fuchsia-400/50 hover:border-fuchsia-300 shadow-[0_4px_16px_rgba(168,85,247,0.3)] transition transform hover:scale-105 active:scale-95 cursor-pointer"
+          title="Regras da Ilha"
+        >
+          <img
+            src="/assets/buttons/btn_regras.png"
+            alt="Regras da Ilha"
+            className="h-9 sm:h-11 w-auto object-contain drop-shadow"
+          />
+          <span className="font-['Baloo_2'] text-[9px] sm:text-[11px] font-bold text-cyan-200 text-center leading-tight truncate w-full mt-1">
+            Regras da Ilha
+          </span>
+        </button>
+
+        {/* Card 3: Nível Médio */}
+        <button
+          onClick={toggleDificuldade}
+          className="flex-1 min-w-0 flex flex-col items-center justify-center p-2 rounded-2xl bg-gradient-to-b from-[#2e1805] to-[#140a02] border border-amber-400/50 hover:border-amber-300 shadow-[0_4px_16px_rgba(251,191,36,0.3)] transition transform hover:scale-105 active:scale-95 cursor-pointer"
+          title={`Dificuldade: ${dificuldadeNome}. Clique para alterar.`}
+        >
+          <img
+            src="/assets/buttons/btn_nivel.png"
+            alt="Nível"
+            className="h-9 sm:h-11 w-auto object-contain drop-shadow"
+          />
+          <span className="font-['Baloo_2'] text-[9px] sm:text-[11px] font-bold text-amber-300 text-center leading-tight truncate w-full mt-1">
+            Nível {dificuldadeNome}
+          </span>
+        </button>
       </div>
 
-      {/* ========================================================================= */}
-      {/* BOTTOM BAR (Matching the user's reference mockup) */}
-      {/* ========================================================================= */}
-      <footer className="relative z-30 w-full px-3 sm:px-6 py-3 bg-gradient-to-t from-[#020728]/95 to-transparent">
-        <div className="mx-auto max-w-7xl flex flex-col md:flex-row items-center justify-between gap-3 sm:gap-4">
-          
-          {/* Left: Button "DETALHES DA EQUIPE (Ranking)" matching image_6e489cb4.png */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setAbaModalEquipe("ranking");
-                setIsRankingModalOpen(true);
-              }}
-              className="relative group flex flex-col items-center justify-center cursor-pointer transition transform hover:scale-105 active:scale-95 focus:outline-none"
-              title="Detalhes da Equipe (Ranking dos Alunos)"
-            >
-              <div className="relative">
-                <img
-                  src="/assets/buttons/btn_equipe.png"
-                  alt="Detalhes da Equipe (Ranking)"
-                  className="h-16 sm:h-20 w-auto object-contain select-none drop-shadow-[0_4px_16px_rgba(0,102,255,0.7)]"
-                />
-                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 font-['Baloo_2'] font-black text-[10px] sm:text-xs whitespace-nowrap shadow-[0_2px_8px_rgba(0,0,0,0.8)] border border-white tracking-wide flex items-center gap-1">
-                  <Trophy className="w-3 h-3 text-slate-950 fill-slate-950" />
-                  <span>(Ranking)</span>
-                </span>
-              </div>
-            </button>
-          </div>
+      {/* ======================================================================= */}
+      {/* MENU INFERIOR RESPONSIVO (Seção 3: Ranking, Largada, Líder, Regras, Jogar) */}
+      {/* ======================================================================= */}
+      <div
+        className="fixed bottom-0 inset-x-0 z-40 w-full flex justify-center px-2 py-1.5 pointer-events-none"
+        style={{ paddingBottom: "max(0.4rem, env(safe-area-inset-bottom))" }}
+      >
+        <nav
+          aria-label="Menu principal de navegação"
+          className="pointer-events-auto w-full max-w-md flex items-center justify-between gap-1 p-1.5 rounded-2xl bg-[#071342]/95 backdrop-blur-xl border border-cyan-400/60 shadow-[0_8px_30px_rgba(0,0,0,0.9)] box-border"
+        >
+          {/* 1. Ranking */}
+          <button
+            onClick={() => {
+              setAbaModalEquipe("ranking");
+              setIsRankingModalOpen(true);
+            }}
+            className="flex-1 min-w-0 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-amber-400/40 text-amber-300 active:scale-95 transition"
+          >
+            <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+            <span className="text-[8px] sm:text-[10px] font-['Baloo_2'] font-bold leading-none truncate w-full text-center mt-0.5">
+              Ranking
+            </span>
+          </button>
 
-          {/* Center: Star Badge + "Meta para o prêmio: 1.000 pontos" + Golden Progress Bar */}
-          <div className="flex-1 max-w-[480px] w-full flex items-center gap-3 rounded-full bg-[#071342]/90 border-2 border-cyan-400/80 px-4 py-2 shadow-[0_0_25px_rgba(34,211,238,0.3)]">
-            {/* Golden Star Badge */}
-            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 to-yellow-300 border-2 border-white shadow-md text-slate-950 shrink-0">
-              <Star className="w-4 h-4 fill-slate-950 text-slate-950" />
-            </div>
+          {/* 2. Largada */}
+          <button
+            onClick={() => focarCasa(0)}
+            className="flex-1 min-w-0 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/30 text-cyan-200 active:scale-95 transition"
+          >
+            <span className="text-xs sm:text-sm leading-none shrink-0">⛵</span>
+            <span className="text-[8px] sm:text-[10px] font-['Baloo_2'] font-bold leading-none truncate w-full text-center mt-0.5">
+              Largada
+            </span>
+          </button>
 
-            {/* Progress track & dynamic label */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between text-xs font-['Baloo_2'] font-bold text-white mb-1">
-                <span className="truncate">Meta para o prêmio: {metaPontos.toLocaleString("pt-BR")} pontos</span>
-                <span className="font-mono text-amber-300 shrink-0 ml-2">
-                  {pontosExibicaoProgresso} / {metaPontos}
-                </span>
-              </div>
-              <div className="w-full h-2.5 sm:h-3 rounded-full bg-slate-800/90 overflow-hidden border border-cyan-500/30 p-0.5">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 shadow-[0_0_12px_rgba(251,191,36,0.8)] transition-all duration-500"
-                  style={{ width: `${progressoPercentual}%` }}
-                />
-              </div>
-            </div>
-          </div>
+          {/* 3. Líder */}
+          <button
+            onClick={() => {
+              const lider = jogadoresAtivos[0];
+              focarCasa(lider ? lider.casa : 0);
+            }}
+            className="flex-1 min-w-0 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/30 text-cyan-200 active:scale-95 transition"
+          >
+            <span className="text-xs sm:text-sm leading-none shrink-0">👑</span>
+            <span className="text-[8px] sm:text-[10px] font-['Baloo_2'] font-bold leading-none truncate w-full text-center mt-0.5">
+              Líder
+            </span>
+          </button>
 
-          {/* Right: Giant Emerald Green Button "▶ Jogar Perguntas" */}
-          <div className="flex items-center justify-center">
-            <button
-              onClick={handleJogarClique}
-              className="flex items-center gap-3 rounded-full bg-gradient-to-b from-[#22c55e] via-[#16a34a] to-[#15803d] hover:from-[#34d399] hover:to-[#16a34a] border-3 border-white px-6 sm:px-8 py-2.5 sm:py-3 shadow-[0_0_30px_rgba(34,197,94,0.6)] font-['Baloo_2'] font-black text-base sm:text-lg text-white uppercase tracking-wider cursor-pointer transform active:scale-95 transition"
-            >
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md">
-                <Play className="w-4 h-4 fill-[#15803d] text-[#15803d] ml-0.5" />
-              </div>
-              <span>Jogar Perguntas</span>
-            </button>
-          </div>
+          {/* 4. Regras */}
+          <button
+            onClick={() => setIsRegrasOpen(true)}
+            className="flex-1 min-w-0 flex flex-col items-center justify-center py-1 px-0.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-cyan-500/30 text-cyan-200 active:scale-95 transition"
+          >
+            <span className="text-xs sm:text-sm leading-none shrink-0">📜</span>
+            <span className="text-[8px] sm:text-[10px] font-['Baloo_2'] font-bold leading-none truncate w-full text-center mt-0.5">
+              Regras
+            </span>
+          </button>
 
-        </div>
-      </footer>
+          {/* 5. Jogar */}
+          <button
+            onClick={handleJogarClique}
+            className="flex-[1.2] min-w-0 flex items-center justify-center gap-1 py-1.5 px-1.5 sm:px-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-400 hover:to-green-500 text-white font-['Baloo_2'] font-black text-[9px] sm:text-[11px] shadow-md border border-white/60 active:scale-95 transition shrink-0"
+          >
+            <Play className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-white text-white shrink-0" />
+            <span className="truncate">Jogar</span>
+          </button>
+        </nav>
+      </div>
 
       {/* ========================================================================= */}
       {/* DETALHES DA EQUIPE & RANKING MODAL */}

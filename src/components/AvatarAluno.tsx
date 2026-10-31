@@ -6,7 +6,7 @@ interface AvatarAlunoProps {
   codigo: string;
   nome: string;
   avatarUrl?: string | null;
-  tamanho?: "xs" | "sm" | "md" | "lg" | "xl";
+  tamanho?: "xs" | "sm" | "md" | "lg" | "xl" | "responsive";
   className?: string;
   mostrarIniciaisFallback?: boolean;
 }
@@ -17,6 +17,7 @@ const TAMANHOS = {
   md: "w-11 h-11 sm:w-12 sm:h-12 text-sm sm:text-base border-2",
   lg: "w-14 h-14 sm:w-16 sm:h-16 text-lg sm:text-xl border-3",
   xl: "w-20 h-20 sm:w-24 sm:h-24 text-2xl sm:text-3xl border-4",
+  responsive: "w-6 h-6 sm:w-8 sm:h-8 md:w-11 md:h-11 text-[9px] sm:text-xs md:text-sm border sm:border-2",
 };
 
 export const AvatarAluno: React.FC<AvatarAlunoProps> = ({

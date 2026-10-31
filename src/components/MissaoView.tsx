@@ -196,7 +196,7 @@ export const MissaoView: React.FC<MissaoViewProps> = ({ aluno, livroId, onVoltar
 
             <div>
               <p className="font-['Baloo_2'] text-2xl font-extrabold text-white animate-pulse">
-                🐱 Preparando sua missão com Inteligência Artificial...
+                🐱 Preparando sua missão de leitura...
               </p>
               <p className="text-xs text-cyan-200/80 mt-1">
                 Lendo os dados de "{livro.titulo}" e formulando 6 perguntas desafiadoras.
